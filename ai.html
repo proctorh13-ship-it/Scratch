@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spin to Win Game</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background: #f4f4f4;
+    }
+
+    h1 {
+        margin-top: 20px;
+    }
+
+    .wheel-container {
+        position: relative;
+        width: 300px;
+        margin: 20px auto;
+    }
+
+    canvas {
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        background: white;
+    }
+
+    /* 🎯 FIXED ARROW (now properly points into wheel) */
+    .arrow {
+        position: absolute;
+        top: -2px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+
+        border-left: 12px solid transparent;
+        border-right: 12px solid transparent;
+        border-top: 22px solid #e63946;
+
+        z-index: 10;
+    }
+
+    button {
+        padding: 10px 20px;
+        margin: 10px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    #spinBtn { background-color: #28a745; color: white; }
+    #skipBtn { background-color: #dc3545; color: white; }
+    #doneBtn { background-color: #007bff; color: white; }
+
+    #result { font-size: 20px; margin-top: 15px; }
+    #score { font-size: 18px; margin-top: 10px; }
+</style>
+</head>
+
+<body>
+
+<h1>🎡 Spin to Win!</h1>
+
+<div class="wheel-container">
+    <div class="arrow"></div>
+    <canvas id="wheel" width="300" height="300"></canvas>
+</div>
+
+<button id="spinBtn">Spin</button>
+<button id="doneBtn">I Did It (+10)</button>
+<button id="skipBtn">Skip</button>
+
+<div id="result"></div>
+<div id="score">Score: 0</div>
+
+<script>
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+const actions = [
+    "Do 10 push-ups",
+    "Sing a song",
+    "Dance 15 sec",
+    "Tell a joke",
+    "Cartwheel",
+    "Act like animal",
+    "Tongue twister",
+    "5 jumping jacks"
+];
+
+let startAngle = 0;
+let arc = Math.PI * 2 / actions.length;
+let spinning = false;
+let currentIndex = null;
+let score = 0;
+
+function drawWheel() {
+    const radius = 150;
+
+    for (let i = 0; i < actions.length; i++) {
+        let angle = startAngle + i * arc;
+
+        ctx.beginPath();
+        ctx.fillStyle = i % 2 === 0 ? "#ffcc00" : "#ff6666";
+        ctx.moveTo(150, 150);
+        ctx.arc(150, 150, radius, angle, angle + arc);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(150, 150);
+        ctx.rotate(angle + arc / 2);
+
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#222";
+        ctx.font = "bold 12px Arial";
+
+        ctx.fillText(actions[i], radius - 20, 5);
+
+        ctx.restore();
+    }
+
+    // center circle
+    ctx.beginPath();
+    ctx.fillStyle = "#fff";
+    ctx.arc(150, 150, 30, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function spinWheel() {
+    if (spinning) return;
+
+    spinning = true;
+    let spinAngle = Math.random() * 2000 + 2000;
+    let duration = 3000;
+    let start = null;
+
+    function animate(timestamp) {
+        if (!start) start = timestamp;
+        let progress = timestamp - start;
+        let rotation = spinAngle * easeOut(progress / duration);
+
+        startAngle = rotation * Math.PI / 180;
+        ctx.clearRect(0, 0, 300, 300);
+        drawWheel();
+
+        if (progress < duration) {
+            requestAnimationFrame(animate);
+        } else {
+            spinning = false;
+
+            let degrees = (startAngle * 180 / Math.PI) + 90;
+            let arcd = arc * 180 / Math.PI;
+            let index = Math.floor((360 - (degrees % 360)) / arcd);
+
+            currentIndex = index;
+            document.getElementById("result").innerText =
+                "Do this: " + actions[index];
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
+function easeOut(t) {
+    return 1 - Math.pow(1 - t, 3);
+}
+
+function completeAction() {
+    if (currentIndex === null) return;
+
+    score += 10;
+    document.getElementById("score").innerText = "Score: " + score;
+
+    if (score >= 100) {
+        document.getElementById("result").innerText = "🏆 You Win!";
+    }
+}
+
+function skipAction() {
+    document.getElementById("result").innerText = "Skipped! Spin again.";
+    currentIndex = null;
+}
+
+document.getElementById("spinBtn").onclick = spinWheel;
+document.getElementById("doneBtn").onclick = completeAction;
+document.getElementById("skipBtn").onclick = skipAction;
+
+drawWheel();
+</script>
+
+</body>
+</html>
